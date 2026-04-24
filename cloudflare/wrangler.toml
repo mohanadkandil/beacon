@@ -1,0 +1,31 @@
+# yappr Wire — Cloudflare Worker cron.
+# Deploy:  cd cloudflare && wrangler deploy
+# Logs:    wrangler tail yappr-cron
+
+name = "yappr-cron"
+main = "src/index.ts"
+compatibility_date = "2026-04-26"
+
+# Fire every minute. Adjust as needed.
+# Cron syntax: minute hour day-of-month month day-of-week
+[triggers]
+crons = ["*/1 * * * *"]
+
+# Public env (non-secret). Override per environment if you want.
+[vars]
+YAPPR_TICK_URL = "https://yappr.ai/api/wire/cron-tick"
+
+# For YAPPR_CRON_SECRET, run:
+#   wrangler secret put YAPPR_CRON_SECRET
+# (Don't commit secrets here.)
+
+# Optional environments
+[env.preview]
+name = "yappr-cron-preview"
+[env.preview.vars]
+YAPPR_TICK_URL = "https://yappr-preview.vercel.app/api/wire/cron-tick"
+
+[env.production]
+name = "yappr-cron"
+[env.production.vars]
+YAPPR_TICK_URL = "https://yappr.ai/api/wire/cron-tick"

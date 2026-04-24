@@ -1,0 +1,19 @@
+{
+  "name": "yappr-cron",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "deploy:preview": "wrangler deploy --env preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "tail": "wrangler tail yappr-cron",
+    "tail:preview": "wrangler tail yappr-cron-preview",
+    "health": "curl \"$YAPPR_TICK_URL?health=1\"",
+    "test:tick": "curl -X POST \"$YAPPR_TICK_URL\" -H \"X-Yappr-Cron-Secret: $YAPPR_CRON_SECRET\""
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240620.0",
+    "wrangler": "^3.78.0",
+    "typescript": "^5.4.0"
+  }
+}
