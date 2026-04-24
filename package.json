@@ -1,5 +1,5 @@
 {
-  "name": "beacon",
+  "name": "yappr",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,13 +11,16 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
     "@base-ui/react": "^1.4.1",
+    "@composio/core": "^0.6.11",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@octokit/rest": "^22.0.1",
+    "@openrouter/ai-sdk-provider": "^2.8.1",
     "@slack/webhook": "^7.0.9",
     "@tiptap/extension-placeholder": "^3.22.4",
     "@tiptap/pm": "^3.22.4",
     "@tiptap/react": "^3.22.4",
     "@tiptap/starter-kit": "^3.22.4",
+    "ai": "^6.0.168",
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
