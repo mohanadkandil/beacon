@@ -36,6 +36,8 @@ export type Recipe = {
   requiresEnv: string[];
   /** What configuration fields the user can tweak. */
   configurable?: { key: string; label: string; default: string | number; kind: "text" | "number" | "select"; options?: string[] }[];
+  /** Composio toolkit slug this patch needs connected to actually fire. */
+  tool?: "github" | "slack" | "notion" | "linear" | "gmail";
 };
 
 export const RECIPES: Recipe[] = [
@@ -47,12 +49,13 @@ export const RECIPES: Recipe[] = [
     emoji: "🪄",
     trigger: { kind: "cron", cronSpec: "0 9 * * *", humanLabel: "Daily · 9:00 local" },
     reads: ["Peec · get_brand_report", "Peec · get_url_report"],
-    writes: "GitHub PR (Octokit)",
+    writes: "GitHub PR (via Composio · GITHUB_PULLS_CREATE)",
     status: "live",
-    requiresEnv: ["GITHUB_TOKEN", "GITHUB_REPO"],
+    requiresEnv: ["COMPOSIO_API_KEY", "GITHUB_REPO"],
     configurable: [
       { key: "minCitationCount", label: "Min citation count to act", default: 5, kind: "number" },
     ],
+    tool: "github",
   },
   {
     id: "slack-brief",
@@ -62,12 +65,13 @@ export const RECIPES: Recipe[] = [
     emoji: "🪟",
     trigger: { kind: "cron", cronSpec: "0 8 * * 1", humanLabel: "Mondays · 8:00 local" },
     reads: ["Peec · get_brand_report", "Peec · get_url_report"],
-    writes: "Slack message (incoming webhook)",
+    writes: "Slack message (via Composio · SLACK_SEND_MESSAGE)",
     status: "live",
-    requiresEnv: ["SLACK_WEBHOOK_URL"],
+    requiresEnv: ["COMPOSIO_API_KEY", "SLACK_CHANNEL"],
     configurable: [
       { key: "channel", label: "Channel hint", default: "#marketing", kind: "text" },
     ],
+    tool: "slack",
   },
   {
     id: "citation-watch",
@@ -77,13 +81,14 @@ export const RECIPES: Recipe[] = [
     emoji: "🛎",
     trigger: { kind: "anomaly", thresholdLabel: "≥ 2σ below 14d rolling mean" },
     reads: ["Peec · get_brand_report", "Peec · get_chat"],
-    writes: "Slack alert + Linear issue",
+    writes: "Slack alert (via Composio)",
     status: "stub",
-    requiresEnv: ["SLACK_WEBHOOK_URL"],
+    requiresEnv: ["COMPOSIO_API_KEY", "SLACK_CHANNEL"],
     configurable: [
       { key: "sigma", label: "Sigma threshold", default: 2, kind: "number" },
       { key: "topicsScope", label: "Topics scope", default: "all", kind: "select", options: ["all", "tracked-only"] },
     ],
+    tool: "slack",
   },
   {
     id: "competitor-surge",
@@ -125,10 +130,59 @@ export const RECIPES: Recipe[] = [
     reads: ["Peec · get_brand_report (delta vs pre-action baseline)"],
     writes: "Slack report",
     status: "stub",
-    requiresEnv: ["SLACK_WEBHOOK_URL"],
+    requiresEnv: ["COMPOSIO_API_KEY", "SLACK_CHANNEL"],
+    tool: "slack",
   },
   {
-    id: "schema-coverage",
+    id: "notion-drafter",
+    name: "Notion Drafter",
+    description: "Drafts a comparison page in Notion grounded in this week's top cited prompts. Routed via Composio MCP.",
+    pigment: "lavender",
+    emoji: "📓",
+    trigger: { kind: "cron", cronSpec: "0 11 * * 1", humanLabel: "Mondays · 11:00 local" },
+    reads: ["Peec · get_url_report"],
+    writes: "Notion page (via Composio · NOTION_CREATE_PAGE)",
+    status: "live",
+    requiresEnv: ["COMPOSIO_API_KEY", "NOTION_PARENT_PAGE_ID"],
+    configurable: [
+      { key: "topicSlug", label: "Topic / phrase", default: "AI sourcing tools", kind: "text" },
+    ],
+    tool: "notion",
+  },
+  {
+    id: "linear-triager",
+    name: "Linear Triager",
+    description: "When a 2σ visibility drop hits, files a Linear issue with the autopsy attached. Routed via Composio MCP.",
+    pigment: "rose",
+    emoji: "🛠",
+    trigger: { kind: "anomaly", thresholdLabel: "≥ 2σ visibility drop on a tracked topic" },
+    reads: ["Peec · get_brand_report (60d)"],
+    writes: "Linear issue (via Composio · LINEAR_CREATE_ISSUE)",
+    status: "live",
+    requiresEnv: ["COMPOSIO_API_KEY", "LINEAR_TEAM_ID"],
+    configurable: [
+      { key: "sigma", label: "Sigma threshold", default: 2, kind: "number" },
+    ],
+    tool: "linear",
+  },
+  {
+    id: "gmail-pitcher",
+    name: "Gmail Pitcher",
+    description: "Finds journalists/authors of articles citing your space. Drafts a pitch email per author. Routed via Composio MCP.",
+    pigment: "clay" as LintPigment,
+    emoji: "✉",
+    trigger: { kind: "cron", cronSpec: "0 9 * * 2", humanLabel: "Tuesdays · 9:00 local" },
+    reads: ["Peec · get_url_report (classification=ARTICLE)"],
+    writes: "Gmail drafts (via Composio · GMAIL_CREATE_DRAFT)",
+    status: "live",
+    requiresEnv: ["COMPOSIO_API_KEY", "PITCH_TO_EMAIL"],
+    configurable: [
+      { key: "maxDrafts", label: "Max drafts per run", default: 3, kind: "number" },
+    ],
+    tool: "gmail",
+  },
+  {
+    id: "press-pitch",
     name: "Schema Coverage Report",
     description: "Weekly check on what % of your top cited URLs use JSON-LD vs competitors'. Slack summary.",
     pigment: "lavender",
@@ -137,19 +191,8 @@ export const RECIPES: Recipe[] = [
     reads: ["Peec · get_url_report"],
     writes: "Slack summary",
     status: "coming_soon",
-    requiresEnv: ["SLACK_WEBHOOK_URL"],
-  },
-  {
-    id: "press-pitch",
-    name: "Press Pitch Generator",
-    description: "Finds journalists currently citing your space. Drafts pitch emails in Gmail draft folder.",
-    pigment: "clay" as LintPigment,
-    emoji: "✉",
-    trigger: { kind: "cron", cronSpec: "0 9 * * 2", humanLabel: "Tuesdays · 9:00 local" },
-    reads: ["Peec · get_url_report (classification=ARTICLE)", "Peec · get_chat"],
-    writes: "Gmail draft per journalist",
-    status: "coming_soon",
-    requiresEnv: ["GOOGLE_OAUTH_TOKEN"],
+    requiresEnv: ["COMPOSIO_API_KEY", "SLACK_CHANNEL"],
+    tool: "slack",
   },
 ];
 

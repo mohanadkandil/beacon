@@ -41,7 +41,7 @@ export function StatusFeed({ runs, onRefresh }: { runs: Run[]; onRefresh: () => 
           }}>
             <div className="font-bold mb-1.5" style={{ color: "#1A1612" }}>No runs yet</div>
             <div className="leading-relaxed">
-              Hit <strong>▸ Run now</strong> on any recipe to fire it on stage. Cron-scheduled runs will accumulate here once Vercel Cron is enabled.
+              Hit <strong>▸ Run now</strong> on any recipe to fire it on stage. Cron-scheduled runs will accumulate here once the Cloudflare Worker is deployed.
             </div>
           </div>
         )}

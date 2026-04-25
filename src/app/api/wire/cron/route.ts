@@ -7,20 +7,22 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 /**
- * Scheduled execution. Wire up via vercel.json with a cron schedule:
- *   { "crons": [{ "path": "/api/wire/cron", "schedule": "0 9 * * *" }] }
+ * Scheduled execution. v0 fires all live recipes for the system user once.
+ * Phase 2 honors per-user enabled flags + per-recipe schedules + Postgres state.
  *
- * For v0 this fires all live recipes daily. Phase 2 honors per-recipe
- * cron specs and per-user enable flags persisted in Postgres.
+ * For multi-tenant cron, set COMPOSIO_SYSTEM_USER_ID and PEEC_PROJECT_ID to a
+ * baseline configuration, then loop per-user when persistence is added.
  */
 export async function GET() {
   const projectId = process.env.PEEC_PROJECT_ID || "";
-  if (!projectId) return NextResponse.json({ ok: false, error: "no project" }, { status: 400 });
+  const userId = process.env.COMPOSIO_SYSTEM_USER_ID || "";
+  if (!projectId) return NextResponse.json({ ok: false, error: "PEEC_PROJECT_ID not set for cron" }, { status: 400 });
+  if (!userId) return NextResponse.json({ ok: false, error: "COMPOSIO_SYSTEM_USER_ID not set — cron needs a Composio identity to run as" }, { status: 400 });
 
   const liveRecipes = RECIPES.filter((r) => r.status === "live");
   const results = [];
   for (const recipe of liveRecipes) {
-    const run = await runRecipe(recipe, projectId);
+    const run = await runRecipe(recipe, projectId, userId);
     appendRun(run);
     results.push({ recipe: recipe.id, status: run.status, message: run.message });
   }
