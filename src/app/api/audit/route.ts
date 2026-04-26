@@ -11,6 +11,7 @@ import {
 } from "@/lib/peec-rest";
 import { computeAllLints } from "@/lib/lints";
 import { parseDoc } from "@/lib/parse-doc";
+import { CONFIG_KEYS, getUserConfig } from "@/lib/wire/user-config-store";
 
 export const dynamic = "force-dynamic";
 
@@ -23,13 +24,19 @@ function lastNDays(n: number): { start: string; end: string } {
 }
 
 export async function POST(req: NextRequest) {
-  let body: { html?: string; projectId?: string } = {};
+  let body: { html?: string; projectId?: string; userId?: string } = {};
   try { body = await req.json(); }
   catch { return NextResponse.json({ ok: false, error: "invalid JSON body" }, { status: 400 }); }
 
   const projectId = body.projectId || process.env.PEEC_PROJECT_ID;
   if (!projectId) {
     return NextResponse.json({ ok: false, error: "no project selected" }, { status: 500 });
+  }
+  const apiKey = body.userId
+    ? await getUserConfig(body.userId, CONFIG_KEYS.peec.apiKey, "PEEC_API_KEY")
+    : process.env.PEEC_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ ok: false, error: "Peec API key missing" }, { status: 401 });
   }
 
   const html = typeof body.html === "string" ? body.html : "";
@@ -41,11 +48,11 @@ export async function POST(req: NextRequest) {
   };
 
   const [brands, topics, topicRows, urlRows] = await Promise.all([
-    safe<Brand[]>("listBrands", () => listBrands(projectId), []),
-    safe<Topic[]>("listTopics", () => listTopics(projectId), []),
+    safe<Brand[]>("listBrands", () => listBrands(projectId, apiKey), []),
+    safe<Topic[]>("listTopics", () => listTopics(projectId, apiKey), []),
     safe<BrandReportRow[]>("getBrandReport(topic)", () =>
-      getBrandReport({ projectId, startDate: start, endDate: end, dimensions: ["topic_id"], limit: 500 }), []),
-    safe<URLReportRow[]>("getURLReport", () => getURLReport({ projectId, startDate: start, endDate: end, limit: 100 }), []),
+      getBrandReport({ projectId, startDate: start, endDate: end, dimensions: ["topic_id"], limit: 500, apiKey }), []),
+    safe<URLReportRow[]>("getURLReport", () => getURLReport({ projectId, startDate: start, endDate: end, limit: 100, apiKey }), []),
   ]);
 
   const ownBrand = brands.find((b) => b.is_own);

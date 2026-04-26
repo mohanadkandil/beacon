@@ -7,12 +7,13 @@ type ForgeResp =
   | { ok: false; error: string };
 
 export function ForgePanel({
-  open, onClose, projectId, projectName, onOpenInQuill,
+  open, onClose, projectId, projectName, userId, onOpenInQuill,
 }: {
   open: boolean;
   onClose: () => void;
   projectId: string | null;
   projectName: string;
+  userId: string;
   onOpenInQuill: (html: string) => void;
 }) {
   const [topic, setTopic] = useState("");
@@ -42,7 +43,7 @@ export function ForgePanel({
       const r = await fetch("/api/forge-generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, projectId, tone }),
+        body: JSON.stringify({ topic, projectId, tone, userId }),
       });
       setResult(await r.json());
     } catch (err) { setResult({ ok: false, error: (err as Error).message }); }

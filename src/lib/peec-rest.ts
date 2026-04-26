@@ -21,10 +21,15 @@
  */
 
 const BASE = process.env.PEEC_API_URL || "https://api.peec.ai/customer/v1";
+export const PROJECT_SCOPED_ID = "project-scoped";
 
-function authHeaders(): HeadersInit {
-  const key = process.env.PEEC_API_KEY;
-  if (!key) throw new Error("PEEC_API_KEY not set in .env.local");
+function projectParam(projectId?: string): string | undefined {
+  return projectId === PROJECT_SCOPED_ID ? undefined : projectId;
+}
+
+function authHeaders(apiKey?: string): HeadersInit {
+  const key = apiKey || process.env.PEEC_API_KEY;
+  if (!key) throw new Error("Peec API key missing. Sign in via the onboarding screen or set PEEC_API_KEY in .env.local.");
   return {
     Accept: "application/json",
     "Content-Type": "application/json",
@@ -32,7 +37,7 @@ function authHeaders(): HeadersInit {
   };
 }
 
-async function request<T>(method: "GET" | "POST", path: string, init: { params?: Record<string, string | number | undefined>; body?: unknown } = {}): Promise<T> {
+async function request<T>(method: "GET" | "POST", path: string, init: { params?: Record<string, string | number | undefined>; body?: unknown; apiKey?: string } = {}): Promise<T> {
   const url = new URL(BASE.replace(/\/+$/, "") + path);
   if (init.params) {
     for (const [k, v] of Object.entries(init.params)) {
@@ -41,7 +46,7 @@ async function request<T>(method: "GET" | "POST", path: string, init: { params?:
   }
   const res = await fetch(url.toString(), {
     method,
-    headers: authHeaders(),
+    headers: authHeaders(init.apiKey),
     body: init.body ? JSON.stringify(init.body) : undefined,
     cache: "no-store",
   });
@@ -104,23 +109,23 @@ export type URLReportRow = {
   [k: string]: unknown;
 };
 
-export async function listProjects(): Promise<Project[]> {
-  const payload = await request<unknown>("GET", "/projects");
+export async function listProjects(apiKey?: string): Promise<Project[]> {
+  const payload = await request<unknown>("GET", "/projects", { apiKey });
   return extractRows(payload) as Project[];
 }
 
-export async function listBrands(projectId?: string): Promise<Brand[]> {
-  const payload = await request<unknown>("GET", "/brands", { params: { project_id: projectId } });
+export async function listBrands(projectId?: string, apiKey?: string): Promise<Brand[]> {
+  const payload = await request<unknown>("GET", "/brands", { params: { project_id: projectParam(projectId) }, apiKey });
   return extractRows(payload) as Brand[];
 }
 
-export async function listTopics(projectId?: string): Promise<Topic[]> {
-  const payload = await request<unknown>("GET", "/topics", { params: { project_id: projectId } });
+export async function listTopics(projectId?: string, apiKey?: string): Promise<Topic[]> {
+  const payload = await request<unknown>("GET", "/topics", { params: { project_id: projectParam(projectId) }, apiKey });
   return extractRows(payload) as Topic[];
 }
 
-export async function listModels(projectId?: string): Promise<AIModel[]> {
-  const payload = await request<unknown>("GET", "/models", { params: { project_id: projectId } });
+export async function listModels(projectId?: string, apiKey?: string): Promise<AIModel[]> {
+  const payload = await request<unknown>("GET", "/models", { params: { project_id: projectParam(projectId) }, apiKey });
   return extractRows(payload) as AIModel[];
 }
 
@@ -131,6 +136,7 @@ type ReportArgs = {
   dimensions?: string[];
   filters?: Array<{ field: string; operator: string; value?: unknown; values?: unknown[] }>;
   limit?: number;
+  apiKey?: string;
 };
 
 function reportBody(args: ReportArgs): Record<string, unknown> {
@@ -140,24 +146,25 @@ function reportBody(args: ReportArgs): Record<string, unknown> {
     limit: args.limit ?? 1000,
     offset: 0,
   };
-  if (args.projectId) body.project_id = args.projectId;
+  const projectId = projectParam(args.projectId);
+  if (projectId) body.project_id = projectId;
   if (args.dimensions) body.dimensions = args.dimensions;
   if (args.filters) body.filters = args.filters;
   return body;
 }
 
 export async function getBrandReport(args: ReportArgs): Promise<BrandReportRow[]> {
-  const payload = await request<unknown>("POST", "/reports/brands", { body: reportBody(args) });
+  const payload = await request<unknown>("POST", "/reports/brands", { body: reportBody(args), apiKey: args.apiKey });
   return extractRows(payload) as BrandReportRow[];
 }
 
 export async function getDomainReport(args: ReportArgs): Promise<Record<string, unknown>[]> {
-  const payload = await request<unknown>("POST", "/reports/domains", { body: reportBody(args) });
+  const payload = await request<unknown>("POST", "/reports/domains", { body: reportBody(args), apiKey: args.apiKey });
   return extractRows(payload);
 }
 
 export async function getURLReport(args: ReportArgs): Promise<URLReportRow[]> {
-  const payload = await request<unknown>("POST", "/reports/urls", { body: reportBody(args) });
+  const payload = await request<unknown>("POST", "/reports/urls", { body: reportBody(args), apiKey: args.apiKey });
   return extractRows(payload) as URLReportRow[];
 }
 

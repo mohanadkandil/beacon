@@ -40,14 +40,24 @@ export async function runRecipe(recipe: Recipe, projectId: string, userId: strin
     startedAt, status: "running", message: "Starting…", trace: [],
   };
   try {
+    const peecApiKey = await getUserConfig(userId, CONFIG_KEYS.peec.apiKey, "PEEC_API_KEY");
+    if (!peecApiKey) {
+      return {
+        ...base,
+        endedAt: nowISO(),
+        status: "failed",
+        message: "Connect your Peec API key in onboarding before running Wire.",
+      };
+    }
+
     switch (recipe.id) {
-      case "schema-sweeper":  return await runSchemaSweeper(base, projectId, userId);
-      case "slack-brief":     return await runSlackBrief(base, projectId, userId);
-      case "citation-watch":  return await runCitationWatch(base, projectId, userId);
-      case "competitor-surge": return await runCompetitorSurge(base, projectId, userId);
-      case "notion-drafter":  return await runNotionDrafter(base, projectId, userId);
-      case "linear-triager":  return await runLinearTriager(base, projectId, userId);
-      case "gmail-pitcher":   return await runGmailPitcher(base, projectId, userId);
+      case "schema-sweeper":  return await runSchemaSweeper(base, projectId, userId, peecApiKey);
+      case "slack-brief":     return await runSlackBrief(base, projectId, userId, peecApiKey);
+      case "citation-watch":  return await runCitationWatch(base, projectId, userId, peecApiKey);
+      case "competitor-surge": return await runCompetitorSurge(base, projectId, userId, peecApiKey);
+      case "notion-drafter":  return await runNotionDrafter(base, projectId, userId, peecApiKey);
+      case "linear-triager":  return await runLinearTriager(base, projectId, userId, peecApiKey);
+      case "gmail-pitcher":   return await runGmailPitcher(base, projectId, userId, peecApiKey);
       case "stale-content":   return await runStubAgent(base, "Stale Content Sweeper", "Scans complete. 0 stale posts to draft (stub mode).");
       case "lift-auditor":    return await runStubAgent(base, "Lift Auditor", "Awaiting agent actions to measure (no actions in last 14d).");
       case "press-pitch":     return await runStubAgent(base, "Schema Coverage Report", "Coming soon — needs HTML scraping pipeline.");
@@ -73,7 +83,7 @@ function composioGuard(): { ok: false; message: string } | null {
 // Schema Sweeper — opens a GitHub PR via Composio
 // ----------------------------------------------------------------------------
 
-async function runSchemaSweeper(run: Run, projectId: string, userId: string): Promise<Run> {
+async function runSchemaSweeper(run: Run, projectId: string, userId: string, apiKey: string): Promise<Run> {
   const trace: string[] = [];
   const guard = composioGuard();
   if (guard) return { ...run, endedAt: nowISO(), status: "failed", message: guard.message, trace };
@@ -85,7 +95,7 @@ async function runSchemaSweeper(run: Run, projectId: string, userId: string): Pr
 
   const { start, end } = lastNDays(30);
   trace.push(`Pulled get_url_report ${start} → ${end}`);
-  const urls = await getURLReport({ projectId, startDate: start, endDate: end, limit: 50 });
+  const urls = await getURLReport({ projectId, startDate: start, endDate: end, limit: 50, apiKey });
   const pickedTitles = urls.filter((u) => u.title).slice(0, 5).map((u) => u.title!);
   if (!pickedTitles.length) {
     return { ...run, endedAt: nowISO(), status: "no-op", message: "No cited URLs with titles to schema-ify.", trace };
@@ -194,7 +204,7 @@ async function postSlack(channel: string, text: string, userId: string): Promise
   return { ok: false, error: errMsg };
 }
 
-async function runSlackBrief(run: Run, projectId: string, userId: string): Promise<Run> {
+async function runSlackBrief(run: Run, projectId: string, userId: string, apiKey: string): Promise<Run> {
   const trace: string[] = [];
   const guard = composioGuard();
   if (guard) return { ...run, endedAt: nowISO(), status: "failed", message: guard.message, trace };
@@ -204,10 +214,10 @@ async function runSlackBrief(run: Run, projectId: string, userId: string): Promi
   const { start, end } = lastNDays(7);
   trace.push(`Pulled Peec brand+url reports for ${start} → ${end}`);
   const [brands, topics, urlRows, brandRows] = await Promise.all([
-    listBrands(projectId),
-    listTopics(projectId),
-    getURLReport({ projectId, startDate: start, endDate: end, limit: 30 }),
-    getBrandReport({ projectId, startDate: start, endDate: end, dimensions: ["topic_id"], limit: 200 }),
+    listBrands(projectId, apiKey),
+    listTopics(projectId, apiKey),
+    getURLReport({ projectId, startDate: start, endDate: end, limit: 30, apiKey }),
+    getBrandReport({ projectId, startDate: start, endDate: end, dimensions: ["topic_id"], limit: 200, apiKey }),
   ]);
   const own = brands.find((b) => b.is_own);
   if (!own) return { ...run, endedAt: nowISO(), status: "no-op", message: "No own brand configured in Peec.", trace };
@@ -265,7 +275,7 @@ async function runSlackBrief(run: Run, projectId: string, userId: string): Promi
 // Citation Watch — anomaly detection + Slack alert via Composio
 // ----------------------------------------------------------------------------
 
-async function runCitationWatch(run: Run, projectId: string, userId: string): Promise<Run> {
+async function runCitationWatch(run: Run, projectId: string, userId: string, apiKey: string): Promise<Run> {
   const trace: string[] = [];
   const guard = composioGuard();
   // Citation Watch can run without Composio for the read; the alert is optional.
@@ -275,11 +285,11 @@ async function runCitationWatch(run: Run, projectId: string, userId: string): Pr
   trace.push(`Pulled get_brand_report (60d, dim=topic_id+date)`);
   const rows = await getBrandReport({
     projectId, startDate: start, endDate: end,
-    dimensions: ["topic_id", "date"], limit: 2000,
+    dimensions: ["topic_id", "date"], limit: 2000, apiKey,
   });
   if (!rows.length) return { ...run, endedAt: nowISO(), status: "no-op", message: "No daily topic data returned.", trace };
 
-  const brands = await listBrands(projectId);
+  const brands = await listBrands(projectId, apiKey);
   const own = brands.find((b) => b.is_own);
   if (!own) return { ...run, endedAt: nowISO(), status: "no-op", message: "No own brand configured.", trace };
 
@@ -315,7 +325,7 @@ async function runCitationWatch(run: Run, projectId: string, userId: string): Pr
     return { ...run, endedAt: nowISO(), status: "no-op", message: "No 2σ visibility drops detected. All clear.", trace };
   }
 
-  const topics = await listTopics(projectId);
+  const topics = await listTopics(projectId, apiKey);
   const topicName = (id: string) => topics.find((t) => t.id === id)?.name ?? id.slice(0, 8);
 
   if (channel && !guard) {
@@ -343,7 +353,7 @@ async function runCitationWatch(run: Run, projectId: string, userId: string): Pr
 // Competitor Surge — week-over-week URL diff
 // ----------------------------------------------------------------------------
 
-async function runCompetitorSurge(run: Run, projectId: string, userId: string): Promise<Run> {
+async function runCompetitorSurge(run: Run, projectId: string, userId: string, apiKey: string): Promise<Run> {
   const trace: string[] = [];
   const cur = lastNDays(7);
   const prevEnd = new Date(); prevEnd.setDate(prevEnd.getDate() - 7);
@@ -352,8 +362,8 @@ async function runCompetitorSurge(run: Run, projectId: string, userId: string): 
 
   trace.push(`Pulled get_url_report current (${cur.start} → ${cur.end}) and prior (${prev.start} → ${prev.end})`);
   const [curRows, prevRows] = await Promise.all([
-    getURLReport({ projectId, startDate: cur.start, endDate: cur.end, limit: 100 }),
-    getURLReport({ projectId, startDate: prev.start, endDate: prev.end, limit: 100 }),
+    getURLReport({ projectId, startDate: cur.start, endDate: cur.end, limit: 100, apiKey }),
+    getURLReport({ projectId, startDate: prev.start, endDate: prev.end, limit: 100, apiKey }),
   ]);
 
   const prevByUrl = new Map<string, number>();
@@ -384,7 +394,7 @@ async function runCompetitorSurge(run: Run, projectId: string, userId: string): 
 // Notion Drafter — Composio NOTION_CREATE_PAGE
 // ----------------------------------------------------------------------------
 
-async function runNotionDrafter(run: Run, projectId: string, userId: string): Promise<Run> {
+async function runNotionDrafter(run: Run, projectId: string, userId: string, apiKey: string): Promise<Run> {
   const trace: string[] = [];
   const guard = composioGuard();
   if (guard) return { ...run, endedAt: nowISO(), status: "failed", message: guard.message, trace };
@@ -393,11 +403,11 @@ async function runNotionDrafter(run: Run, projectId: string, userId: string): Pr
 
   const { start, end } = lastNDays(30);
   trace.push(`Pulled get_url_report ${start} → ${end}`);
-  const urls = await getURLReport({ projectId, startDate: start, endDate: end, limit: 30 });
+  const urls = await getURLReport({ projectId, startDate: start, endDate: end, limit: 30, apiKey });
   const top = urls.filter((u) => u.title).slice(0, 6);
   if (!top.length) return { ...run, endedAt: nowISO(), status: "no-op", message: "No cited URL titles to draft from.", trace };
 
-  const brands = await listBrands(projectId);
+  const brands = await listBrands(projectId, apiKey);
   const own = brands.find((b) => b.is_own);
   const ownName = own?.name ?? "your brand";
 
@@ -435,7 +445,7 @@ async function runNotionDrafter(run: Run, projectId: string, userId: string): Pr
 // Linear Triager — Composio LINEAR_CREATE_ISSUE
 // ----------------------------------------------------------------------------
 
-async function runLinearTriager(run: Run, projectId: string, userId: string): Promise<Run> {
+async function runLinearTriager(run: Run, projectId: string, userId: string, apiKey: string): Promise<Run> {
   const trace: string[] = [];
   const guard = composioGuard();
   if (guard) return { ...run, endedAt: nowISO(), status: "failed", message: guard.message, trace };
@@ -445,10 +455,10 @@ async function runLinearTriager(run: Run, projectId: string, userId: string): Pr
   const { start, end } = lastNDays(60);
   const rows = await getBrandReport({
     projectId, startDate: start, endDate: end,
-    dimensions: ["topic_id", "date"], limit: 2000,
+    dimensions: ["topic_id", "date"], limit: 2000, apiKey,
   });
   if (!rows.length) return { ...run, endedAt: nowISO(), status: "no-op", message: "No daily topic data.", trace };
-  const brands = await listBrands(projectId);
+  const brands = await listBrands(projectId, apiKey);
   const own = brands.find((b) => b.is_own);
   if (!own) return { ...run, endedAt: nowISO(), status: "no-op", message: "No own brand configured.", trace };
 
@@ -481,7 +491,7 @@ async function runLinearTriager(run: Run, projectId: string, userId: string): Pr
   }
   if (!worst) return { ...run, endedAt: nowISO(), status: "no-op", message: "No 2σ anomalies. All clear.", trace };
 
-  const topics = await listTopics(projectId);
+  const topics = await listTopics(projectId, apiKey);
   const topicName = topics.find((t) => t.id === worst!.topicId)?.name ?? worst.topicId.slice(0, 8);
 
   const issueTitle = `Visibility drop on "${topicName}" — ${Math.round(worst.latest * 100)}% (${worst.deviation.toFixed(1)}σ)`;
@@ -516,7 +526,7 @@ async function runLinearTriager(run: Run, projectId: string, userId: string): Pr
 // Gmail Pitcher — Composio GMAIL_CREATE_DRAFT
 // ----------------------------------------------------------------------------
 
-async function runGmailPitcher(run: Run, projectId: string, userId: string): Promise<Run> {
+async function runGmailPitcher(run: Run, projectId: string, userId: string, apiKey: string): Promise<Run> {
   const trace: string[] = [];
   const guard = composioGuard();
   if (guard) return { ...run, endedAt: nowISO(), status: "failed", message: guard.message, trace };
@@ -528,11 +538,12 @@ async function runGmailPitcher(run: Run, projectId: string, userId: string): Pro
     projectId, startDate: start, endDate: end,
     filters: [{ field: "url_classification", operator: "in", values: ["ARTICLE", "LISTICLE"] }],
     limit: 10,
+    apiKey,
   });
   const articles = urls.filter((u) => u.title && u.url).slice(0, 3);
   if (!articles.length) return { ...run, endedAt: nowISO(), status: "no-op", message: "No article-class URLs.", trace };
 
-  const brands = await listBrands(projectId);
+  const brands = await listBrands(projectId, apiKey);
   const own = brands.find((b) => b.is_own);
   const ownName = own?.name ?? "your brand";
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllUserConfig, setUserConfig } from "@/lib/wire/user-config-store";
+import { CONFIG_KEYS, getAllUserConfig, setUserConfig } from "@/lib/wire/user-config-store";
 
 export const dynamic = "force-dynamic";
 
@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
   const userId = req.nextUrl.searchParams.get("userId") || "";
   if (!userId) return NextResponse.json({ ok: false, error: "userId required" }, { status: 400 });
   const config = await getAllUserConfig(userId);
+  if (config[CONFIG_KEYS.peec.apiKey]) config[CONFIG_KEYS.peec.apiKey] = "saved";
   return NextResponse.json({ ok: true, config });
 }
 

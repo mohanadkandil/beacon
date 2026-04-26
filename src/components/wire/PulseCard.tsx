@@ -73,7 +73,7 @@ export function PulseCard({ latest, projectName }: { latest?: Run; projectName: 
             fontSize: 16, fontStyle: "italic", lineHeight: 1.45,
             color: "#1A1612",
           }}>
-            "{latest.message}"
+            &quot;{latest.message}&quot;
           </p>
           {latest.artifactUrl ? (
             <a href={latest.artifactUrl} target="_blank" rel="noreferrer"

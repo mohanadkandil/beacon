@@ -37,12 +37,17 @@ type Mode = "quill" | "wire";
 
 const FIXABLE_KINDS = new Set(["h1_extractability", "jtbd_framing", "schema_gap", "comparison_structure", "competitor_url"]);
 
-export function StudioShell({ projectName: initialProjectName, projectId: initialProjectId }: {
+export function StudioShell({
+  projectName: initialProjectName,
+  projectId: initialProjectId,
+  userId: initialUserId = "",
+}: {
   projectName: string;
   projectId: string | null;
+  userId?: string;
 }) {
   const [mode, setMode] = useState<Mode>("quill");
-  const [userId, setUserId] = useState<string>("");
+  const [userId, setUserId] = useState<string>(initialUserId);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [connectionsCount, setConnectionsCount] = useState<number | null>(null);
   const [connectedTools, setConnectedTools] = useState<Set<string>>(new Set());
@@ -70,14 +75,15 @@ export function StudioShell({ projectName: initialProjectName, projectId: initia
       if (savedProject) setActiveProjectId(savedProject);
       const savedMode = localStorage.getItem(LS_MODE) as Mode | null;
       if (savedMode === "wire" || savedMode === "quill") setMode(savedMode);
-      let uid = localStorage.getItem(LS_USER);
+      let uid = initialUserId || localStorage.getItem(LS_USER);
       if (!uid) { uid = generateUserId(); localStorage.setItem(LS_USER, uid); }
+      else if (initialUserId) localStorage.setItem(LS_USER, initialUserId);
       setUserId(uid);
     } catch {
-      setUserId(generateUserId());
+      setUserId(initialUserId || generateUserId());
     }
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, []);
+  }, [initialUserId]);
 
   const audit = useCallback(async (html: string, projectIdOverride?: string) => {
     const pid = projectIdOverride ?? activeProjectId;
@@ -90,7 +96,7 @@ export function StudioShell({ projectName: initialProjectName, projectId: initia
       const res = await fetch("/api/audit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html, projectId: pid }),
+        body: JSON.stringify({ html, projectId: pid, userId }),
         signal: ctrl.signal,
       });
       const data: AuditResp = await res.json();
@@ -107,7 +113,7 @@ export function StudioShell({ projectName: initialProjectName, projectId: initia
     } finally {
       if (inFlight.current === ctrl) { setAuditing(false); inFlight.current = null; }
     }
-  }, [activeProjectId]);
+  }, [activeProjectId, userId]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -286,7 +292,7 @@ export function StudioShell({ projectName: initialProjectName, projectId: initia
               color: "#4A413A", borderColor: "rgba(26,22,18,0.08)",
             }}>{range.start} → {range.end}</span>
           )}
-          <ProjectSelector activeProjectId={activeProjectId} onChange={onProjectChange} />
+          <ProjectSelector activeProjectId={activeProjectId} userId={userId} onChange={onProjectChange} />
           <button
             onClick={() => setSettingsOpen(true)}
             title="Settings"
@@ -383,6 +389,7 @@ export function StudioShell({ projectName: initialProjectName, projectId: initia
         onClose={() => setForgeOpen(false)}
         projectId={activeProjectId}
         projectName={activeProjectName}
+        userId={userId}
         onOpenInQuill={onForgeOpenInQuill}
       />
 

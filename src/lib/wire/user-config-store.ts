@@ -13,7 +13,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-const STATE_DIR = path.join(process.cwd(), ".beacon-state");
+const STATE_DIR = process.env.YAPPR_DATA_DIR || process.env.BEACON_DATA_DIR || path.join(process.cwd(), ".yappr-state");
 const FILE = path.join(STATE_DIR, "user-config.json");
 
 // Top-level map: userId -> { key -> value }
@@ -86,9 +86,10 @@ export async function setUserConfig(userId: string, key: string, value: string):
 
 /** Standardized config keys used by agents — keep this source of truth thin. */
 export const CONFIG_KEYS = {
-  slack: { channel: "slack.channel" },
+  peec:   { apiKey: "peec.apiKey", projectId: "peec.projectId", projectName: "peec.projectName", mode: "peec.mode" },
+  slack:  { channel: "slack.channel" },
   github: { repo: "github.repo" },
   notion: { parentPageId: "notion.parentPageId" },
   linear: { teamId: "linear.teamId" },
-  gmail: { pitchTo: "gmail.pitchTo" },
+  gmail:  { pitchTo: "gmail.pitchTo" },
 } as const;

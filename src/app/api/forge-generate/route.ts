@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listBrands, listTopics, getURLReport } from "@/lib/peec-rest";
+import { listBrands, getURLReport } from "@/lib/peec-rest";
+import { CONFIG_KEYS, getUserConfig } from "@/lib/wire/user-config-store";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
   const model = process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini";
   if (!apiKey) return NextResponse.json({ ok: false, error: "OPENROUTER_API_KEY not set" }, { status: 500 });
 
-  let body: { topic?: string; projectId?: string; competitorNames?: string[]; tone?: string } = {};
+  let body: { topic?: string; projectId?: string; competitorNames?: string[]; tone?: string; userId?: string } = {};
   try { body = await req.json(); }
   catch { return NextResponse.json({ ok: false, error: "invalid JSON body" }, { status: 400 }); }
 
@@ -26,6 +27,9 @@ export async function POST(req: NextRequest) {
   if (!topic) return NextResponse.json({ ok: false, error: "topic is required" }, { status: 400 });
 
   const projectId = body.projectId || process.env.PEEC_PROJECT_ID;
+  const peecApiKey = body.userId
+    ? await getUserConfig(body.userId, CONFIG_KEYS.peec.apiKey, "PEEC_API_KEY")
+    : process.env.PEEC_API_KEY;
   const tone = body.tone || "editorial, confident, specific";
 
   // Pull a small slice of Peec context for grounding.
@@ -35,12 +39,13 @@ export async function POST(req: NextRequest) {
   if (projectId) {
     try {
       const [brands, urls] = await Promise.all([
-        listBrands(projectId),
+        listBrands(projectId, peecApiKey),
         getURLReport({
           projectId,
           startDate: new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10),
           endDate: new Date().toISOString().slice(0, 10),
           limit: 30,
+          apiKey: peecApiKey,
         }),
       ]);
       ownBrandName = brands.find((b) => b.is_own)?.name;

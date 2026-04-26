@@ -63,7 +63,10 @@ export function ConnectionsPanel({ userId, compact = false }: { userId: string; 
     finally { setLoading(false); }
   }, [userId]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    const id = window.setTimeout(() => { void refresh(); }, 0);
+    return () => window.clearTimeout(id);
+  }, [refresh]);
   useEffect(() => {
     const onFocus = () => refresh();
     window.addEventListener("focus", onFocus);
@@ -73,15 +76,18 @@ export function ConnectionsPanel({ userId, compact = false }: { userId: string; 
   // Fetch Slack channels once Slack is connected.
   useEffect(() => {
     if (!userId || !connected.has("slack") || slackChannels !== null || slackChannelsLoading) return;
-    setSlackChannelsLoading(true);
-    fetch(`/api/wire/composio/slack-channels?userId=${encodeURIComponent(userId)}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.ok) { setSlackChannels(d.channels ?? []); setSlackChannelsErr(null); }
-        else { setSlackChannelsErr(d.error || "couldn't load channels"); setSlackChannels([]); }
-      })
-      .catch((err) => { setSlackChannelsErr((err as Error).message); setSlackChannels([]); })
-      .finally(() => setSlackChannelsLoading(false));
+    const id = window.setTimeout(() => {
+      setSlackChannelsLoading(true);
+      fetch(`/api/wire/composio/slack-channels?userId=${encodeURIComponent(userId)}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.ok) { setSlackChannels(d.channels ?? []); setSlackChannelsErr(null); }
+          else { setSlackChannelsErr(d.error || "couldn't load channels"); setSlackChannels([]); }
+        })
+        .catch((err) => { setSlackChannelsErr((err as Error).message); setSlackChannels([]); })
+        .finally(() => setSlackChannelsLoading(false));
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [userId, connected, slackChannels, slackChannelsLoading]);
 
   const connect = async (slug: string) => {
@@ -278,7 +284,7 @@ export function ConnectionsPanel({ userId, compact = false }: { userId: string; 
           fontFamily: '"New York", Georgia, serif',
           fontStyle: "italic", fontSize: 12, color: "#8E8478",
         }}>
-          Connect Slack first — it's the fastest path to a live demo.
+          Connect Slack first — it&apos;s the fastest path to a live demo.
         </div>
       )}
     </div>

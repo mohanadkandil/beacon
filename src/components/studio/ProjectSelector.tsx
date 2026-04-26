@@ -5,9 +5,10 @@ import { useEffect, useRef, useState } from "react";
 type Project = { id: string; name: string; status?: string };
 
 export function ProjectSelector({
-  activeProjectId, onChange,
+  activeProjectId, userId, onChange,
 }: {
   activeProjectId: string | null;
+  userId: string;
   onChange: (project: Project) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -17,8 +18,9 @@ export function ProjectSelector({
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!userId) return;
     let cancelled = false;
-    fetch("/api/projects")
+    fetch(`/api/projects?userId=${encodeURIComponent(userId)}`)
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return;
@@ -28,7 +30,7 @@ export function ProjectSelector({
       .catch((e) => !cancelled && setError(e.message))
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -79,7 +81,7 @@ export function ProjectSelector({
             <div className="px-4 py-3 text-[12px]" style={{ color: "#B73B4F" }}>
               {error}
               <div className="mt-1" style={{ color: "#8E8478" }}>
-                Add your Peec API key to <code>.env.local</code>, then refresh.
+                Reconnect your Peec key from onboarding, then refresh.
               </div>
             </div>
           )}

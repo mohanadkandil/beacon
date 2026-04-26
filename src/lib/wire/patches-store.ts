@@ -22,7 +22,7 @@ export type SavedPatch = {
   updatedAt: number;
 };
 
-const STATE_DIR = path.join(process.cwd(), ".beacon-state");
+const STATE_DIR = process.env.YAPPR_DATA_DIR || process.env.BEACON_DATA_DIR || path.join(process.cwd(), ".yappr-state");
 const PATCHES_FILE = path.join(STATE_DIR, "patches.json");
 
 // In-memory cache so reads don't hit disk every time. Loaded lazily.

@@ -13,9 +13,9 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
  * fallback. If the MCP rejects both, the smoke route surfaces a 401 and we
  * pivot to the REST surface (see peecRest.ts).
  */
-export async function peecClient() {
+export async function peecClient(apiKeyOverride?: string) {
   const url = process.env.PEEC_MCP_URL;
-  const apiKey = process.env.PEEC_API_KEY;
+  const apiKey = apiKeyOverride || process.env.PEEC_API_KEY;
   if (!url) throw new Error("PEEC_MCP_URL not set in .env.local");
   if (!apiKey) throw new Error("PEEC_API_KEY not set in .env.local");
 

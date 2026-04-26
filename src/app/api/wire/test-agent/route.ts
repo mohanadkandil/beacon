@@ -52,6 +52,9 @@ export async function POST(req: NextRequest) {
   if (!outputFields.length) return NextResponse.json({ ok: false, error: "outputFields required" }, { status: 400 });
 
   const projectId = body.projectId || process.env.PEEC_PROJECT_ID || "";
+  const peecApiKey = body.userId
+    ? await getUserConfig(body.userId, CONFIG_KEYS.peec.apiKey, "PEEC_API_KEY")
+    : process.env.PEEC_API_KEY;
 
   const schema = compileZodSchema(outputFields);
 
@@ -67,7 +70,7 @@ export async function POST(req: NextRequest) {
     const sections: string[] = [];
     for (const node of upstreamReads) {
       const slug = (node.config ?? "").split(/\s|\(/)[0].trim();
-      const r = await fetchPeecForSlug(slug, projectId);
+      const r = await fetchPeecForSlug(slug, projectId, peecApiKey);
       if (r.ok) {
         peecDebug.push({ slug, ok: true, rowCount: r.rowCount });
         sections.push(`=== ${slug} (${r.rowCount} rows) ===\n${JSON.stringify(r.data, null, 2).slice(0, 6000)}`);
@@ -470,17 +473,17 @@ function collectUpstream(nodes: CanvasNode[], edges: CanvasEdge[], endId: string
 }
 
 /** Dispatch a peec-read tool slug to the matching Peec REST function. */
-async function fetchPeecForSlug(slug: string, projectId: string): Promise<{ ok: true; data: unknown; rowCount: number } | { ok: false; error: string }> {
+async function fetchPeecForSlug(slug: string, projectId: string, apiKey?: string): Promise<{ ok: true; data: unknown; rowCount: number } | { ok: false; error: string }> {
   const range = lastNDays(30);
   try {
     switch (slug) {
-      case "list_projects":   { const d = await peec.listProjects(); return { ok: true, data: d, rowCount: d.length }; }
-      case "list_brands":     { const d = await peec.listBrands(projectId); return { ok: true, data: d, rowCount: d.length }; }
-      case "list_topics":     { const d = await peec.listTopics(projectId); return { ok: true, data: d, rowCount: d.length }; }
-      case "list_models":     { const d = await peec.listModels(projectId); return { ok: true, data: d, rowCount: d.length }; }
-      case "get_brand_report": { const d = await peec.getBrandReport({ projectId, startDate: range.start, endDate: range.end, limit: 50 }); return { ok: true, data: d, rowCount: d.length }; }
-      case "get_url_report":   { const d = await peec.getURLReport({ projectId, startDate: range.start, endDate: range.end, limit: 50 }); return { ok: true, data: d, rowCount: d.length }; }
-      case "get_domain_report": { const d = await peec.getDomainReport({ projectId, startDate: range.start, endDate: range.end, limit: 50 }); return { ok: true, data: d, rowCount: d.length }; }
+      case "list_projects":   { const d = await peec.listProjects(apiKey); return { ok: true, data: d, rowCount: d.length }; }
+      case "list_brands":     { const d = await peec.listBrands(projectId, apiKey); return { ok: true, data: d, rowCount: d.length }; }
+      case "list_topics":     { const d = await peec.listTopics(projectId, apiKey); return { ok: true, data: d, rowCount: d.length }; }
+      case "list_models":     { const d = await peec.listModels(projectId, apiKey); return { ok: true, data: d, rowCount: d.length }; }
+      case "get_brand_report": { const d = await peec.getBrandReport({ projectId, startDate: range.start, endDate: range.end, limit: 50, apiKey }); return { ok: true, data: d, rowCount: d.length }; }
+      case "get_url_report":   { const d = await peec.getURLReport({ projectId, startDate: range.start, endDate: range.end, limit: 50, apiKey }); return { ok: true, data: d, rowCount: d.length }; }
+      case "get_domain_report": { const d = await peec.getDomainReport({ projectId, startDate: range.start, endDate: range.end, limit: 50, apiKey }); return { ok: true, data: d, rowCount: d.length }; }
       default:
         return { ok: false, error: `peec-read slug "${slug}" not wired into the test runner yet — add a mapping in fetchPeecForSlug` };
     }
@@ -496,4 +499,3 @@ function lastNDays(n: number): { start: string; end: string } {
   startD.setDate(now.getDate() - n);
   return { start: startD.toISOString().slice(0, 10), end };
 }
-
