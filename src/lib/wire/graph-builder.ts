@@ -20,6 +20,10 @@ export type CanvasNode = {
   /** For claude-think nodes — the editable structured output schema. JSON-encoded
    * array of OutputField (kept as a string to keep CanvasNode JSON-serializable). */
   outputFieldsJson?: string;
+  /** For action nodes — per-node destination override (Slack channel, GitHub
+   * repo, Linear team id, Notion parent page id, Gmail recipient). When set,
+   * takes precedence over the user-config defaults from Settings. */
+  destination?: string;
 };
 
 export type CanvasEdge = { from: string; to: string };

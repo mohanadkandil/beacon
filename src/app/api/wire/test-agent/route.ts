@@ -195,8 +195,9 @@ async function fireActionNode(
 
   switch (node.toolSlug) {
     case "slack": {
-      const channel = await getUserConfig(userId, CONFIG_KEYS.slack.channel, "SLACK_CHANNEL");
-      if (!channel) return { ok: false, message: "Set a Slack channel in Settings → Slack first." };
+      const channel = node.destination?.trim()
+        || await getUserConfig(userId, CONFIG_KEYS.slack.channel, "SLACK_CHANNEL");
+      if (!channel) return { ok: false, message: "Set a Slack channel on this node or in Settings → Slack first." };
       const blocks = buildSlackBlocks(agentName, agentOutput, outputFields);
       const r = (await executeTool("SLACK_SEND_MESSAGE", {
         channel,
@@ -213,7 +214,8 @@ async function fireActionNode(
     }
 
     case "github": {
-      const repoStr = await getUserConfig(userId, CONFIG_KEYS.github.repo, "GITHUB_REPO");
+      const repoStr = node.destination?.trim()
+        || await getUserConfig(userId, CONFIG_KEYS.github.repo, "GITHUB_REPO");
       if (!repoStr || !repoStr.includes("/")) {
         return { ok: false, message: "Set GitHub repo (owner/repo) in Settings → GitHub first." };
       }
@@ -228,8 +230,9 @@ async function fireActionNode(
     }
 
     case "linear": {
-      const teamId = await getUserConfig(userId, CONFIG_KEYS.linear.teamId, "LINEAR_TEAM_ID");
-      if (!teamId) return { ok: false, message: "Set Linear team id in Settings → Linear first." };
+      const teamId = node.destination?.trim()
+        || await getUserConfig(userId, CONFIG_KEYS.linear.teamId, "LINEAR_TEAM_ID");
+      if (!teamId) return { ok: false, message: "Set Linear team id on this node or in Settings → Linear first." };
       const title = `yappr · ${agentName} · ${today}`;
       const description = markdown;
       const r = (await executeTool("LINEAR_CREATE_ISSUE", { teamId, title, description }, userId)) as { data?: { issue?: { url?: string; identifier?: string } }; error?: string };
@@ -240,8 +243,9 @@ async function fireActionNode(
     }
 
     case "notion": {
-      const parentRaw = await getUserConfig(userId, CONFIG_KEYS.notion.parentPageId, "NOTION_PARENT_PAGE_ID");
-      if (!parentRaw) return { ok: false, message: "Set Notion parent page id in Settings → Notion first." };
+      const parentRaw = node.destination?.trim()
+        || await getUserConfig(userId, CONFIG_KEYS.notion.parentPageId, "NOTION_PARENT_PAGE_ID");
+      if (!parentRaw) return { ok: false, message: "Set Notion parent page id on this node or in Settings → Notion first." };
       const parentId = parentRaw.replace(/-/g, "");
       const title = `yappr · ${agentName} · ${today}`;
       const blocks = markdownToNotionBlocks(markdown);
@@ -257,8 +261,9 @@ async function fireActionNode(
     }
 
     case "gmail": {
-      const to = await getUserConfig(userId, CONFIG_KEYS.gmail.pitchTo, "PITCH_TO_EMAIL");
-      if (!to) return { ok: false, message: "Set a recipient email in Settings → Gmail first." };
+      const to = node.destination?.trim()
+        || await getUserConfig(userId, CONFIG_KEYS.gmail.pitchTo, "PITCH_TO_EMAIL");
+      if (!to) return { ok: false, message: "Set a recipient email on this node or in Settings → Gmail first." };
       const subject = `yappr · ${agentName} · ${today}`;
       const body = stripMarkdownEmphasis(markdown);
       const r = (await executeTool("GMAIL_CREATE_DRAFT", { to, subject, body }, userId)) as { data?: { id?: string; message?: { id?: string } }; error?: string };

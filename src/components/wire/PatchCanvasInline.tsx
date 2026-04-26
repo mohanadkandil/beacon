@@ -1007,6 +1007,46 @@ function PropertiesPanel({
           )}
 
           {/* Action sub-operation */}
+          {selected.kind === "action" && selected.toolSlug && (() => {
+            const placeholders: Record<string, string> = {
+              slack: "#channel  or  C0AVA3FBV7Y",
+              github: "owner/repo",
+              linear: "team uuid",
+              notion: "parent page id (32 chars)",
+              gmail: "recipient@example.com",
+            };
+            const labels: Record<string, string> = {
+              slack: "channel",
+              github: "repo",
+              linear: "team",
+              notion: "parent page",
+              gmail: "recipient",
+            };
+            return (
+              <Field label={`DESTINATION · ${labels[selected.toolSlug] ?? "target"}`}>
+                <input
+                  type="text"
+                  value={selected.destination ?? ""}
+                  placeholder={placeholders[selected.toolSlug] ?? "destination"}
+                  spellCheck={false}
+                  onChange={(e) => onUpdate({ destination: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: "8px 10px", borderRadius: 8,
+                    background: "rgba(255,255,255,0.7)",
+                    border: "1px solid rgba(26,22,18,0.06)",
+                    color: "#1A1612",
+                    fontSize: 12, fontFamily: "ui-monospace, monospace",
+                    outline: "none",
+                  }}
+                />
+                <p style={{ margin: "6px 2px 0", fontSize: 11, color: "#8E8478", lineHeight: 1.4 }}>
+                  Overrides the Settings default for just this node. Leave empty to use the global value.
+                </p>
+              </Field>
+            );
+          })()}
+
           {selected.kind === "action" && selected.toolSlug && TOOL_ACTIONS[selected.toolSlug] && (
             <Field label="ACTION">
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
