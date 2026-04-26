@@ -45,3 +45,9 @@ next-env.d.ts
 # allow example env
 !.env.example
 .beacon-state/
+
+# Local agent / IDE config — not part of the public repo
+CLAUDE.md
+AGENTS.md
+.claude/
+.cursor/
