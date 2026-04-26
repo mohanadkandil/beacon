@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Logo } from "@/components/Logo";
 
 type Project = { id: string; name: string; status?: string };
 
@@ -89,19 +90,7 @@ export function Onboarding({ userId, onComplete }: { userId: string; onComplete:
       <div style={{ width: 460, maxWidth: "100%", display: "flex", flexDirection: "column", gap: 28 }}>
         {/* Top — wordmark + step pills */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{
-            fontSize: 12, fontWeight: 800, letterSpacing: "-0.01em",
-            color: "#1A1612",
-            fontFamily: '-apple-system, "SF Pro Display", system-ui',
-            display: "flex", alignItems: "center", gap: 8,
-          }}>
-            <span style={{
-              width: 10, height: 10, borderRadius: 999,
-              background: "#B5601E",
-              boxShadow: "0 0 8px rgba(181,96,30,0.45)",
-            }}/>
-            yappr
-          </div>
+          <Logo size={16} variant="wordmark" />
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <span style={{
               width: 6, height: 6, borderRadius: 999,
