@@ -161,7 +161,7 @@ export async function tick(): Promise<{ fired: number; runs: { patchId: string; 
     RUNNING.add(s.key);
     try {
       const run = await runRecipe(recipe, s.projectId, s.userId);
-      appendRun(run);
+      await appendRun(run, s.userId);
       // Update lastRunAt regardless of success — we don't want to retry-storm a
       // failing schedule every tick. Failed runs are still recorded in the feed.
       s.lastRunAt = Date.now();

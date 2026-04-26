@@ -7,6 +7,7 @@ import type { CanvasNode, CanvasEdge } from "@/lib/wire/graph-builder";
 import { executeTool } from "@/lib/wire/composio";
 import * as peec from "@/lib/peec-rest";
 import { getUserConfig, CONFIG_KEYS } from "@/lib/wire/user-config-store";
+import { appendRun, newRunId, type Run } from "@/lib/wire/runs";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 45;
@@ -115,6 +116,40 @@ export async function POST(req: NextRequest) {
         executions.push({ node: node.label || node.id, tool: node.toolSlug!, ok: false, message: (err as Error).message });
       }
     }
+  }
+
+  // Persist to the run feed so the user sees canvas test runs alongside
+  // patch-list runs in the StatusFeed.
+  if (body.userId) {
+    const okExecs = executions.filter((e) => e.ok);
+    const failExecs = executions.filter((e) => !e.ok);
+    const status: Run["status"] = failExecs.length && !okExecs.length
+      ? "failed"
+      : (okExecs.length ? "success" : "no-op");
+    const message = okExecs.length
+      ? `${body.agentName ?? "Agent"} → ${okExecs.map((e) => `${e.tool}: ${e.message}`).join(", ")}`
+      : (failExecs.length
+        ? `${body.agentName ?? "Agent"} → ${failExecs[0].tool}: ${failExecs[0].message}`
+        : `${body.agentName ?? "Agent"} ran clean (no downstream actions wired)`);
+    const trace = [
+      `agent: ${body.agentName ?? "Agent"}`,
+      `peec: ${peecDebug.map((d) => `${d.slug} ${d.ok ? "✓" : "✗"}${d.rowCount != null ? ` (${d.rowCount})` : ""}`).join(", ") || "no upstream reads"}`,
+      ...executions.map((e) => `${e.tool} ${e.ok ? "✓" : "✗"} — ${e.message}`),
+    ];
+    const run: Run = {
+      id: newRunId(),
+      recipeId: body.agentNodeId ?? "canvas-test",
+      recipeName: body.agentName ?? "Canvas test",
+      recipeEmoji: "🧪",
+      startedAt: new Date().toISOString(),
+      endedAt: new Date().toISOString(),
+      status,
+      message,
+      artifactUrl: executions.find((e) => e.ok && e.artifactUrl)?.artifactUrl,
+      artifactLabel: executions.find((e) => e.ok && e.artifactUrl) ? "Open ↗" : undefined,
+      trace,
+    };
+    await appendRun(run, body.userId);
   }
 
   return NextResponse.json({ ok: true, model: modelId, output, executions, peecDebug });

@@ -65,9 +65,10 @@ export function WireShell({ activeProjectId, projectName, userId, connectedTools
   }, [userId]);
 
   const loadRuns = useCallback(async () => {
-    const r = await fetch("/api/wire/runs").then((r) => r.json());
+    const qs = userId ? '?userId=' + encodeURIComponent(userId) : '';
+    const r = await fetch('/api/wire/runs' + qs).then((r) => r.json());
     if (r.ok) setRuns(r.runs);
-  }, []);
+  }, [userId]);
   useEffect(() => {
     const id = window.setTimeout(() => {
       Promise.all([loadPatches(), loadRuns(), loadSavedPatches()]).finally(() => setLoading(false));

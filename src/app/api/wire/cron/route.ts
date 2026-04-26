@@ -23,7 +23,7 @@ export async function GET() {
   const results = [];
   for (const recipe of liveRecipes) {
     const run = await runRecipe(recipe, projectId, userId);
-    appendRun(run);
+    await appendRun(run, process.env.COMPOSIO_USER_ID || "system");
     results.push({ recipe: recipe.id, status: run.status, message: run.message });
   }
   return NextResponse.json({ ok: true, results });

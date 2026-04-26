@@ -26,6 +26,6 @@ export async function POST(
   if (!recipe) return NextResponse.json({ ok: false, error: "unknown recipe" }, { status: 404 });
 
   const run = await runRecipe(recipe, projectId, userId);
-  appendRun(run);
+  await appendRun(run, userId);
   return NextResponse.json({ ok: true, run });
 }
