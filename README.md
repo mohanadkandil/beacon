@@ -4,6 +4,8 @@ yappr is a writing surface and an execution layer for marketers who want to be c
 
 Live at https://www.useyappr.app.
 
+![yappr architecture](./public/yapperarch.png)
+
 ## Why this exists
 
 If you sell anything online and you're paying attention, you've already noticed that your traffic graph looks fine while your AI citation graph looks terrible. ChatGPT and Perplexity quote your competitors. Your marketing team finds out three weeks late. Then they spend a Tuesday afternoon screenshotting the Peec dashboard into Slack and writing a Notion brief that takes another six days to turn into a shipped page.
