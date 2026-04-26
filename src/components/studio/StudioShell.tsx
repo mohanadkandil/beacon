@@ -262,12 +262,8 @@ export function StudioShell({
         zIndex: 60,
       }}>
         <div className="flex items-center gap-4 text-[13px]" style={{ color: "#4A413A" }}>
-          <Link href="/" className="flex items-center gap-2 font-extrabold text-base">
-            <span className="inline-block w-[24px] h-[24px] rounded-full" style={{
-              background: "radial-gradient(circle at 30% 30%, #7E5A0E, #B5601E 70%)",
-              boxShadow: "0 0 14px rgba(255,170,106,0.55), inset 0 1px 0 rgba(255,255,255,0.5)",
-            }} />
-            yappr
+          <Link href="/" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+            <Logo size={18} variant="wordmark" />
           </Link>
           <div className="flex items-center gap-0.5 rounded-full p-1 ml-2" style={{
             background: "rgba(26,22,18,0.04)",
