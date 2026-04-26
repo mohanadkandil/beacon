@@ -223,11 +223,11 @@ export function ConnectionsPanel({ userId, compact = false }: { userId: string; 
                               ? (slackChannelsErr ? "couldn't load — type below" : "no channels found")
                               : "pick a channel…"}
                         </option>
-                        {value && !slackChannels?.some((c) => c.name === value) && (
+                        {value && !slackChannels?.some((c) => c.id === value || c.name === value) && (
                           <option value={value}>{value} (saved)</option>
                         )}
                         {(slackChannels ?? []).map((c) => (
-                          <option key={c.id || c.name} value={c.name}>
+                          <option key={c.id || c.name} value={c.id || c.name}>
                             {c.name}{c.isPrivate ? " · private" : ""}{!c.isMember ? " · invite bot" : ""}
                           </option>
                         ))}
