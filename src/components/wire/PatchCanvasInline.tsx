@@ -108,6 +108,7 @@ function centerNodes(nodes: CanvasNode[], canvasWidth: number, canvasHeight: num
 }
 
 export function PatchCanvasInline({
+  patchId,
   patchName,
   initialNodes, initialEdges,
   mode, status, userId, projectId,
@@ -474,6 +475,29 @@ export function PatchCanvasInline({
               cursor: testing ? "wait" : "pointer",
               height: 32,
             }}>{testing ? "running…" : "▸ test run"}</button>
+          {userId && (
+            <button
+              onClick={() => {
+                const url = `/api/wire/patches/${patchId}/skill?userId=${encodeURIComponent(userId)}`;
+                window.open(url, "_blank", "noopener,noreferrer");
+              }}
+              title="Export this patch as a Cursor / Claude Code skill"
+              style={{
+                width: 32, height: 32, borderRadius: 999, padding: 0,
+                border: "1px solid rgba(26,22,18,0.1)",
+                background: "rgba(255,255,255,0.55)",
+                cursor: "pointer",
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                transition: "background 140ms",
+                flex: "none",
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(26,22,18,0.05)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.55)"; }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/cursor.svg" alt="Cursor" width={14} height={14} style={{ display: "block" }}/>
+            </button>
+          )}
           <button onClick={() => onSave(nodes, edges, name)} style={{
             padding: "7px 14px", borderRadius: 999,
             border: 0, background: "#1A1612", color: "#FAF6EE",

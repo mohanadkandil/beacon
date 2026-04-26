@@ -252,7 +252,7 @@ export function WireShell({ activeProjectId, projectName, userId, connectedTools
                     onRun={() => onRun(p.id)}
                     onOpenDetail={() => setDetailPatchId(p.id)}
                     lastRun={lastRunByPatch.get(p.id)}
-                    userId={userId} connected={p.tool ? connectedTools.has(p.tool) : false} />
+                    connected={p.tool ? connectedTools.has(p.tool) : false} />
                 ))}
               </div>
             )}
@@ -288,7 +288,7 @@ export function WireShell({ activeProjectId, projectName, userId, connectedTools
                         onRun={() => onRun(p.id)}
                         onOpenDetail={() => setDetailPatchId(p.id)}
                         lastRun={lastRunByPatch.get(p.id)}
-                    userId={userId} connected={p.tool ? connectedTools.has(p.tool) : false} />
+                    connected={p.tool ? connectedTools.has(p.tool) : false} />
                     ))}
                   </div>
                 )}
@@ -301,7 +301,7 @@ export function WireShell({ activeProjectId, projectName, userId, connectedTools
                         onRun={() => onRun(p.id)}
                         onOpenDetail={() => setDetailPatchId(p.id)}
                         lastRun={lastRunByPatch.get(p.id)}
-                    userId={userId} connected={p.tool ? connectedTools.has(p.tool) : false} />
+                    connected={p.tool ? connectedTools.has(p.tool) : false} />
                     ))}
                   </div>
                 )}

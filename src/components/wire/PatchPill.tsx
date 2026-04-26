@@ -18,7 +18,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export function PatchPill({
-  patch, enabled, onToggle, onRun, onOpenDetail, lastRun, connected, userId,
+  patch, enabled, onToggle, onRun, onOpenDetail, lastRun, connected,
 }: {
   patch: Recipe;
   enabled: boolean;
@@ -27,17 +27,8 @@ export function PatchPill({
   onOpenDetail: () => void;
   lastRun?: Run;
   connected?: boolean;
-  userId?: string;
 }) {
   const [running, setRunning] = useState(false);
-
-  const exportSkill = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!userId) return;
-    const url = `/api/wire/patches/${patch.id}/skill?userId=${encodeURIComponent(userId)}`;
-    // Trigger a download in a new tab — Content-Disposition handles the rest
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
 
   const fire = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -180,28 +171,6 @@ export function PatchPill({
             marginTop: 3,
             boxShadow: "0 1px 1px rgba(0,0,0,0.18)",
           }} />
-        </button>
-      )}
-
-      {/* Export-to-Cursor — drops a markdown skill into your Cursor / Claude Code workspace */}
-      {userId && (
-        <button
-          onClick={exportSkill}
-          title="Export this patch as a Cursor / Claude Code skill"
-          style={{
-            flex: "none",
-            width: 30, height: 30, borderRadius: 999, padding: 0,
-            border: "1px solid rgba(26,22,18,0.1)",
-            background: "rgba(255,255,255,0.55)",
-            cursor: "pointer",
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            transition: "background 140ms",
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(26,22,18,0.05)"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.55)"; }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/cursor.svg" alt="Cursor" width={14} height={14} style={{ display: "block" }}/>
         </button>
       )}
 
